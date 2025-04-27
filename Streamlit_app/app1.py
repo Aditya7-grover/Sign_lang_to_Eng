@@ -91,10 +91,11 @@ class LandmarkCNN(nn.Module):
         return x
 
 # Load model
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 script_dir = Path(__file__).resolve().parent
 model_path = script_dir.parent / "model" / "evolution_model_v2.pth"
 model = LandmarkCNN()
-model.load_state_dict(torch.load(model_path))
+model.load_state_dict(torch.load(model_path, map_location=device))
 model.eval()
 
 # MediaPipe setup
