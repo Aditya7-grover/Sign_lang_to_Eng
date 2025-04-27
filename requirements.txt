@@ -6,3 +6,4 @@ torchaudio==2.5.1
 mediapipe==0.10.21
 opencv-python==4.10.0.84
 opencv-contrib-python==4.11.0.86
+seaborn==0.13.2
