@@ -91,7 +91,7 @@ class LandmarkCNN(nn.Module):
 
 # Load model
 model = LandmarkCNN()
-model.load_state_dict(torch.load("evolution_model_v2.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("Streamlit_app/evolution_model_v2.pth", map_location=torch.device('cpu')))
 model.eval()
 
 # MediaPipe setup

@@ -60,11 +60,11 @@ class LandmarkCNN(nn.Module):
 
 # --- Load Model ---
 model = LandmarkCNN()
-model.load_state_dict(torch.load("evolution_model_v2.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load("Streamlit_app/evolution_model_v2.pth", map_location=torch.device('cpu')))
 model.eval()
 
 # --- Load Test Data ---
-data = pd.read_excel(r"D:\doc\collegeproject\Sign-Language-To-Text-Conversion\dataSet\asl_2\alphabet_asl_splits\alphabet_testing_data.xlsx")
+data = pd.read_excel("Streamlit_app/alphabet_testing_data.xlsx")
 data.pop("CHARACTER")
 groupValue = data.pop("GROUPVALUE")
 coordinates = np.reshape(data.values, (data.shape[0], 63, 1))
