@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from pathlib import Path
 # --- Title ---
 st.title("Sign Language Recognition - Model Evaluation")
 
@@ -59,12 +59,15 @@ class LandmarkCNN(nn.Module):
         return x
 
 # --- Load Model ---
+script_dir = Path(__file__).resolve().parent
+model_path = script_dir.parent / "model" / "evolution_model_v2.pth"
 model = LandmarkCNN()
-model.load_state_dict(torch.load("Streamlit_app/evolution_model_v2.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(model_path))
 model.eval()
 
 # --- Load Test Data ---
-data = pd.read_excel("Streamlit_app/alphabet_testing_data.xlsx")
+data_path = script_dir.parent / "data" / "alphabet_testing_data.xlsx"
+data = pd.read_excel(data_path)
 data.pop("CHARACTER")
 groupValue = data.pop("GROUPVALUE")
 coordinates = np.reshape(data.values, (data.shape[0], 63, 1))

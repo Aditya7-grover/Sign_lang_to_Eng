@@ -7,6 +7,7 @@ import mediapipe as mp
 import torch
 import torch.nn as nn
 import time
+from pathlib import Path
 
 # Information 
 with st.sidebar:
@@ -90,8 +91,10 @@ class LandmarkCNN(nn.Module):
         return x
 
 # Load model
+script_dir = Path(__file__).resolve().parent
+model_path = script_dir.parent / "model" / "evolution_model_v2.pth"
 model = LandmarkCNN()
-model.load_state_dict(torch.load("Streamlit_app/evolution_model_v2.pth", map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(model_path))
 model.eval()
 
 # MediaPipe setup
