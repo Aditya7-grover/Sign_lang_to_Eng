@@ -1,15 +1,18 @@
-Sign Language to English Text Conversion
+### Sign Language to English Text Conversion
+
 📌 A Deep Learning Model for Real-Time ASL Gesture Recognition
 
 This project converts American Sign Language (ASL) gestures into English text in real-time using a Convolutional Neural Network (CNN) trained with an evolution-inspired approach for robust performance.
 
-🚀 Key Features:
+## 🚀 Key Features:
+
 ✔ Real-time ASL recognition via webcam
 ✔ CNN-based deep learning model for high accuracy
 ✔ Evolution-inspired training for better generalization
 ✔ Supports A-Z alphabet gestures
 
-📂 Repository Structure
+## 📂 Repository Structure
+
 sign-language-to-text/  
 ├── data/  
 │ ├── alphabet_training_data.xlsx
@@ -21,24 +24,24 @@ sign-language-to-text/
 ├── README.md  
 └── requirements.txt # Python dependencies
 
-🛠 Technologies Used
-Deep Learning:
+## 🛠 Technologies Used
 
-PyTorch (CNN architecture)
+`Deep Learning:`
 
-MediaPipe (Hand landmark detection)
+`PyTorch (CNN architecture)`
 
-Training Approach:
+`MediaPipe (Hand landmark detection)`
 
-Evolution-inspired optimization for robust learning
+`Training Approach:`
 
-Web App:
+`Evolution-inspired optimization for robust learning`
 
-OpenCV (Real-time video processing)
+`OpenCV (Real-time video processing)`
 
-🎯 Results & Performance
-✅ High Accuracy: ~93% on test dataset
-✅ Generalizes well to different hand sizes/lighting conditions
+## 🎯 Results & Performance
+
+✅ `High Accuracy:` ~ 93% on test dataset
+✅ `Generalizes well` to different hand sizes/lighting conditions
 
 🌟 Star this repo if you found it useful!
 🔀 Contributions welcome!
