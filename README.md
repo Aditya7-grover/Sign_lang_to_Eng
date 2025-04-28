@@ -1,4 +1,4 @@
-### Sign Language to English Text Conversion
+# Sign Language to English Text Conversion
 
 📌 A Deep Learning Model for Real-Time ASL Gesture Recognition
 
