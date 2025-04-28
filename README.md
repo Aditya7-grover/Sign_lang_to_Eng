@@ -15,13 +15,14 @@ This project converts American Sign Language (ASL) gestures into English text in
 
 sign-language-to-text/  
 ├── data/  
-│ ├── alphabet_training_data.xlsx | alphabet_testing_data.xlsx
+│   ├── alphabet_training_data.xlsx  # Training dataset (landmark coordinates)  
+│   └── alphabet_testing_data.xlsx   # Testing dataset  
 ├── model/  
-│ ├── evolution_model_v2.pth # Trained CNN model  
+│   └── evolution_model_v2.pth       # Pretrained CNN model (PyTorch)  
 ├── train-test/  
-│ ├── train-test.py # Model training notebook  
-├── README.md  
-└── requirements.txt # Python dependencies
+│   └── train-test.py                # Script for training/testing the model  
+├── README.md                        # Project documentation  
+└── requirements.txt                 # Python dependencies  
 
 ## 🛠 Technologies Used
 
