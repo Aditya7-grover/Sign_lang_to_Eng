@@ -105,9 +105,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.dirname(current_dir)
 model_path = os.path.join(repo_root, 'model', 'evolution_model_v2.pth')
 
+
 model = LandmarkCNN()
-model.load_state_dict(torch.load(model_path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
-model.eval()
+@st.cache_resource
+def load_model():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+    return model
+model = load_model()
 # Class dictionary
 classes = {
     'A': 0,
