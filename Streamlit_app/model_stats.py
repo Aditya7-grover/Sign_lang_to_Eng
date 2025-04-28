@@ -1,7 +1,9 @@
 import os
+os.environ["STREAMLIT_SERVER_ENABLE_FILE_WATCHER"] = "false"
 import streamlit as st
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, confusion_matrix
 import torch
+torch._classes.__path__ = []
 import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
@@ -9,6 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+import asyncio
+import nest_asyncio
+nest_asyncio.apply()
 # --- Title ---
 st.title("Sign Language Recognition - Model Evaluation")
 

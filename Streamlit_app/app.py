@@ -1,7 +1,9 @@
 import os
+os.environ["STREAMLIT_SERVER_ENABLE_FILE_WATCHER"] = "false"
 import streamlit as st
 import av
 import torch
+torch._classes.__path__ = []
 import torch.nn as nn
 import numpy as np
 import pandas as pd
@@ -9,6 +11,10 @@ import time
 import mediapipe as mp
 import cv2
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
+import asyncio
+import nest_asyncio
+nest_asyncio.apply()
+
 
 # Information 
 with st.sidebar:
