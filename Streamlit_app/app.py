@@ -1,13 +1,13 @@
-# Importing libraries
+import os
 import streamlit as st
+import av
+import torch
 import numpy as np
 import pandas as pd
-import cv2
-import mediapipe as mp
-import torch
-import torch.nn as nn
 import time
-from pathlib import Path
+import mediapipe as mp
+import cv2
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
 
 # Information 
 with st.sidebar:
@@ -90,19 +90,23 @@ class LandmarkCNN(nn.Module):
         x = self.linearLayers(x)
         return x
 
-# Load model
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-script_dir = Path(__file__).resolve().parent
-model_path = script_dir.parent / "model" / "evolution_model_v2.pth"
-model = LandmarkCNN()
-model.load_state_dict(torch.load(model_path, map_location=device))
-model.eval()
-
-# MediaPipe setup
+# ----- Load Model -----
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
-handDetector = mp_hands.Hands(static_image_mode=False, min_detection_confidence=0.5)
+handDetector = mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.dirname(current_dir)
+model_path = os.path.join(repo_root, 'model', 'evolution_model_v2.pth')
+
+model = LandmarkCNN()
+model.load_state_dict(torch.load(model_path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
+model.eval()
 # Class dictionary
 classes = {
     'A': 0,
@@ -132,65 +136,35 @@ classes = {
     'Y': 24,
     'Z': 25
 }
-# Store the predicted characters to form words
-predicted_word = []
 
-# Timer tracking for holding gestures
-last_predicted_character = None
-hold_start_time = None
-hold_threshold = 3  # seconds to hold a gesture before adding it to the word
+# ----- Prediction placeholders -----
+prediction_char_placeholder = st.empty()
+prediction_word_placeholder = st.empty()
 
-# Start webcam button
-start = st.button('Start Webcam', key="start_button")
-if "start_state" not in st.session_state:
-    st.session_state.start_state = False
-	
-# Stop webcam button (only appears when webcam is active)
-if start or st.session_state.start_state:
-    st.session_state.start_state = True
-    # Display the "Stop Webcam and Clear_word" button once the webcam starts
-    stop = st.button('Stop Webcam', key="stop_button")
-    clear_word = st.button('Clear Word', key="clear_word_button")  # Button to clear word
-    # clear = st.button('Clear Output', key="clear_output")
-    
-  
-    cap = cv2.VideoCapture(0)
-    frame_placeholder = st.empty()  # Placeholder for video frames
-    prediction_char_placeholder = st.empty()  # Placeholder for prediction alphabet
-    prediction_word_placeholder = st.empty()  # Placeholder for prediction word
-    if stop:
-        cap.release()
-        st.stop()  # Stop the Streamlit execution to prevent further actions
-	
-    # Handle Clear Word button click
-    if clear_word:
-        predicted_word.clear()  # Clear the predicted word
-        prediction_word_placeholder.markdown(f"### Current Word: **{''.join(predicted_word)}**")
-		
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+# ----- Custom Video Processor -----
+class ASLProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.last_predicted_character = None
+        self.hold_start_time = None
+        self.predicted_word = []
 
-        height, width, _ = frame.shape
-        frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
+        height, width, _ = img.shape
+
+        frameRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         imgMediapipe = handDetector.process(frameRGB)
 
-        coordinates = []
-        x_Coordinates = []
-        y_Coordinates = []
-        z_Coordinates = []
-
+        x_Coordinates, y_Coordinates, z_Coordinates = [], [], []
         predicted_character = ""
 
         if imgMediapipe.multi_hand_landmarks:
             for handLandmarks in imgMediapipe.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
-                    frame,
-                    handLandmarks,
-                    mp_hands.HAND_CONNECTIONS,
+                    img, handLandmarks, mp_hands.HAND_CONNECTIONS,
                     mp_drawing.DrawingSpec(color=(255,255,255), thickness=2, circle_radius=2),
-                    mp_drawing.DrawingSpec(color=(50,255,0), thickness=2))
+                    mp_drawing.DrawingSpec(color=(50,255,0), thickness=2)
+                )
 
                 data = {}
                 for i in range(len(handLandmarks.landmark)):
@@ -204,49 +178,69 @@ if start or st.session_state.start_state:
                     data[f'{landmark.name}_x'] = lm.x - min(x_Coordinates)
                     data[f'{landmark.name}_y'] = lm.y - min(y_Coordinates)
                     data[f'{landmark.name}_z'] = lm.z - min(z_Coordinates)
-                coordinates.append(data)
 
-            coordinates = pd.DataFrame(coordinates)
-            coordinates = np.reshape(coordinates.values, (coordinates.shape[0], 63, 1))
-            coordinates = torch.from_numpy(coordinates).float()
+                coordinates = pd.DataFrame([data])
+                coordinates = np.reshape(coordinates.values, (coordinates.shape[0], 63, 1))
+                coordinates = torch.from_numpy(coordinates).float()
 
-            with torch.no_grad():
-                outputs = model(coordinates)
-                _, predicted = torch.max(outputs.data, 1)
-                predictions = predicted.cpu().numpy()
+                with torch.no_grad():
+                    outputs = model(coordinates)
+                    _, predicted = torch.max(outputs.data, 1)
+                    predictions = predicted.cpu().numpy()
 
-            predicted_character = [key for key, value in classes.items() if value == predictions[0]][0]
+                predicted_character = [key for key, value in classes.items() if value == predictions[0]][0]
 
-            if predicted_character == last_predicted_character:
-				# Detect hold time for the gesture
-                if hold_start_time is None:
-                    hold_start_time = time.time()  # Start the timer when the gesture is detected
-            else:
-                # Reset the timer if the gesture changes
-                hold_start_time = None
-                last_predicted_character = predicted_character
+                if predicted_character == self.last_predicted_character:
+                    if self.hold_start_time is None:
+                        self.hold_start_time = time.time()
+                else:
+                    self.hold_start_time = None
+                    self.last_predicted_character = predicted_character
 
-            # If the gesture is held for more than 3 seconds, add the letter to the word
-            if hold_start_time is not None and time.time() - hold_start_time >= hold_threshold:
-                predicted_word.append(predicted_character)
-                last_predicted_character = None  # Reset after adding the character
-                hold_start_time = None  # Reset timer after adding the letter
-            # Draw bounding box and prediction
-            x1 = int(min(x_Coordinates) * width) - 10
-            y1 = int(min(y_Coordinates) * height) - 10
-            x2 = int(max(x_Coordinates) * width) + 10
-            y2 = int(max(y_Coordinates) * height) + 10
+                if self.hold_start_time and (time.time() - self.hold_start_time >= 3):
+                    self.predicted_word.append(predicted_character)
+                    self.last_predicted_character = None
+                    self.hold_start_time = None
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 3)
-            cv2.putText(frame, predicted_character, (x1, y1 - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+                x1 = int(min(x_Coordinates) * width) - 10
+                y1 = int(min(y_Coordinates) * height) - 10
+                x2 = int(max(x_Coordinates) * width) + 10
+                y2 = int(max(y_Coordinates) * height) + 10
 
-        # Show frame in Streamlit
-        frame_placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB")
-        
-        # Show prediction
+                cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 0), 3)
+                cv2.putText(img, predicted_character, (x1, y1-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
         if predicted_character:
             prediction_char_placeholder.markdown(f"### Predicted Character: **{predicted_character}**")
-        if predicted_word:
-            prediction_word_placeholder.markdown(f"### Current Word: **{''.join(predicted_word)}**")
-			
-	    
+        if self.predicted_word:
+            prediction_word_placeholder.markdown(f"### Current Word: **{''.join(self.predicted_word)}**")
+
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+# ----- Webcam Start/Stop buttons -----
+st.subheader("Webcam Control")
+
+start_webcam = st.button("Start Webcam")
+stop_webcam = st.button("Stop Webcam")
+
+if "run" not in st.session_state:
+    st.session_state.run = False
+
+if start_webcam:
+    st.session_state.run = True
+if stop_webcam:
+    st.session_state.run = False
+
+if st.session_state.run:
+    webrtc_streamer(
+        key="asl",
+        mode=WebRtcMode.SENDRECV,
+        video_processor_factory=ASLProcessor,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
+
+# ----- Clear Word Button -----
+if st.button("Clear Word"):
+    st.session_state.predicted_word = []
+    prediction_word_placeholder.markdown("### Current Word: ** **")

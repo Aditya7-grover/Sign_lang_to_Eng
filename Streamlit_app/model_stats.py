@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, confusion_matrix
 import torch
@@ -58,16 +59,25 @@ class LandmarkCNN(nn.Module):
         x = self.linearLayers(x)
         return x
 
-# --- Load Model ---
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-script_dir = Path(__file__).resolve().parent
-model_path = script_dir.parent / "model" / "evolution_model_v2.pth"
+
+# Load your model
+# Get the current directory of main.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Go one level up (to repo root)
+repo_root = os.path.dirname(current_dir)
+
+# Path to model
+model_path = os.path.join(repo_root, 'model', 'evolution_model_v2.pth')
+
+# You might want to cache this using st.cache_resource for speed
+
 model = LandmarkCNN()
-model.load_state_dict(torch.load(model_path, map_location=device))
+model.load_state_dict(torch.load(model_path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
 model.eval()
 
 # --- Load Test Data ---
-data_path = script_dir.parent / "data" / "alphabet_testing_data.xlsx"
+data_path = os.path.join(repo_root, 'data', 'data.xlsx')
 data = pd.read_excel(data_path)
 data.pop("CHARACTER")
 groupValue = data.pop("GROUPVALUE")
